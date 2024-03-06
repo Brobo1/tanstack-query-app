@@ -1,7 +1,9 @@
 import {
   Link,
+  redirect,
   useNavigate,
-  useParams
+  useParams,
+  useSubmit
 } from 'react-router-dom';
 
 import Modal      from '../UI/Modal.jsx';
@@ -19,6 +21,7 @@ import ErrorBlock from "../UI/ErrorBlock.jsx";
 
 export default function EditEvent() {
   const {id}     = useParams();
+  const submit   = useSubmit();
   const navigate = useNavigate();
   
   const {data, isError, error} = useQuery({
@@ -27,33 +30,34 @@ export default function EditEvent() {
     ], queryFn: ({signal}) => fetchEvent({signal, id})
   });
   
-  const {mutate} = useMutation({
-    mutationFn: updateEvent, onMutate: async (data) => {
-      const newEvent = data.event;
-      await queryClient.cancelQueries({
-        queryKey: [
+  /*
+    const {mutate} = useMutation({
+      mutationFn: updateEvent, onMutate: async (data) => {
+        const newEvent = data.event;
+        await queryClient.cancelQueries({
+          queryKey: [
+            'events', id
+          ]
+        });
+        const previousEvent = queryClient.getQueryData([
           'events', id
-        ]
-      });
-      const previousEvent = queryClient.getQueryData([
-        'events', id
-      ]);
-      queryClient.setQueryData([
-        'events', id
-      ], newEvent);
-      return {previousEvent};
-    },
-    onError:    (error, data, context) => {
-      queryClient.setQueryData(['events', id], context.previousEvent)
-    },
-    onSettled:  () => {
-      queryClient.invalidateQueries(['events', id]);
-    }
-  });
+        ]);
+        queryClient.setQueryData([
+          'events', id
+        ], newEvent);
+        return {previousEvent};
+      },
+      onError:    (error, data, context) => {
+        queryClient.setQueryData(['events', id], context.previousEvent)
+      },
+      onSettled:  () => {
+        queryClient.invalidateQueries(['events', id]);
+      }
+    });
+    */
   
   function handleSubmit(formData) {
-    mutate({id: id, event: formData});
-    navigate('../')
+    submit(formData, {method: 'PUT'})
   }
   
   function handleClose() {
@@ -109,5 +113,7 @@ export function loader({params}) {
 export async function action({request, params}) {
   const formData         = await request.formData();
   const updatedEventData = Object.fromEntries(formData);
-  updateEvent({id: params.id, event: updatedEventData});
+  await updateEvent({id: params.id, event: updatedEventData});
+  await queryClient.invalidateQueries(['events']);
+  return redirect('../');
 }
