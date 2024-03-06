@@ -2,6 +2,7 @@ import {
   Link,
   redirect,
   useNavigate,
+  useNavigation,
   useParams,
   useSubmit
 } from 'react-router-dom';
@@ -9,7 +10,7 @@ import {
 import Modal      from '../UI/Modal.jsx';
 import EventForm  from './EventForm.jsx';
 import {
-  useMutation,
+  // useMutation,
   useQuery
 }                 from "@tanstack/react-query";
 import {
@@ -23,11 +24,13 @@ export default function EditEvent() {
   const {id}     = useParams();
   const submit   = useSubmit();
   const navigate = useNavigate();
+  const {state}  = useNavigation();
   
   const {data, isError, error} = useQuery({
     queryKey:   [
       'events', id
-    ], queryFn: ({signal}) => fetchEvent({signal, id})
+    ], queryFn: ({signal}) => fetchEvent({signal, id}),
+    staleTime: 10000,
   });
   
   /*
@@ -85,12 +88,18 @@ export default function EditEvent() {
   if (data) {
     content = (
       <EventForm inputData={data} onSubmit={handleSubmit}>
-        <Link to="../" className="button-text">
-          Cancel
-        </Link>
-        <button type="submit" className="button">
-          Update
-        </button>
+        {state === 'submitting' ? (
+          <p>Sending data...</p>
+        ) : (
+           <>
+             <Link to="../" className="button-text">
+               Cancel
+             </Link>
+             <button type="submit" className="button">
+               Update
+             </button>
+           </>
+         )}
       </EventForm>
     )
     
